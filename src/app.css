@@ -22,7 +22,9 @@
   --heat-high: #f87171;
 
   --radius: 10px;
-  --card-w: clamp(44px, 10vw, 76px);
+  /* Height-aware sizing: three rows of my cards must always fit the viewport
+     (phones are width-limited, desktops height-limited). */
+  --card-w: clamp(40px, min(19vw, 9vh), 88px);
   --card-h: calc(var(--card-w) * 1.32);
 }
 
@@ -52,6 +54,12 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+button,
+.card {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button {
@@ -150,18 +158,6 @@ h3 {
   right: -4px;
 }
 
-.card.small {
-  --card-w: clamp(24px, 4.4vw, 40px);
-  border-radius: 6px;
-  font-size: calc(var(--card-w) * 0.46);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 40%);
-}
-
-.card.small::before,
-.card.small::after {
-  display: none;
-}
-
 .card.clickable {
   cursor: pointer;
 }
@@ -188,10 +184,6 @@ h3 {
     linear-gradient(160deg, #182720, #0f1a15);
   color: var(--copper);
   filter: brightness(0.92);
-}
-
-.card.back .die {
-  display: none; /* the generated card back carries the art */
 }
 
 .card.pad {

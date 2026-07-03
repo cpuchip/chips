@@ -2,6 +2,7 @@
   import { app } from './state.svelte.ts'
   import { send } from './net.ts'
   import HeatCard from './HeatCard.svelte'
+  import { heatClass } from './heat.ts'
   import type { PlayerView } from '../shared/heatsink/types.ts'
 
   const v = $derived(app.view)
@@ -81,10 +82,10 @@
     }
     if (v.phase !== 'play') return ''
     if (!myTurn) return `${seatName(v.turn)} is thinking…`
-    if (mode === 'discardSwap') return `place the ${v.discardTop} — click one of your cards to swap it out`
+    if (mode === 'discardSwap') return `swap the ${v.discardTop} into your board — click a card`
     if (mode === 'flipChoose') return 'click a face-down card to flip it'
-    if (v.held !== null) return `you drew a ${v.held} — place it, or toss it and flip`
-    return 'your move: take the discard, or draw from the stack'
+    if (v.held !== null) return `you drew a ${v.held} — place it, or tap the discard to toss & flip`
+    return 'take the discard, or draw from the stack'
   })
 
   function sendChat(): void {
@@ -95,73 +96,82 @@
 </script>
 
 {#if v !== null}
-  <main>
-    <header class="row">
-      <h2 class="trace-title">heatsink</h2>
+  <main class="game">
+    <header class="bar">
+      <span class="trace-title">heatsink</span>
       <span class="dim">round {v.round}</span>
       {#if v.closer !== null && v.phase === 'play'}
         <span class="closing">⚠ {seatName(v.closer)} is done — last turns!</span>
       {/if}
-      <button class="leave" onclick={() => send({ t: 'leaveTable' })}>Leave</button>
+      <span class="spacer"></span>
+      <span class="dim ver">{app.version}</span>
+      <button class="slim" onclick={() => send({ t: 'leaveTable' })}>Leave</button>
     </header>
 
-    <section class="opponents">
+    <section class="opponents" class:few={v.players.length <= 3}>
       {#each v.players as p, i (i)}
         {#if i !== me}
-          <div class="opp panel" class:active={v.phase === 'play' && v.turn === i}>
-            <div class="row opp-head">
+          <div class="opp" class:active={v.phase === 'play' && v.turn === i}>
+            <div class="opp-line">
               <span class="oname">{seatName(i)}</span>
-              <span class="dim heat">{sum(p)}°</span>
+              <span class="oheat">{sum(p)}°</span>
+              <span class="ototal">Σ{v.totals[i]}</span>
             </div>
-            <div class="grid4x3">
+            <div class="mini-grid">
               {#each p.grid as c, j (j)}
-                <HeatCard small value={c === null ? null : c.up ? c.v : null} etched={c === null} />
+                {#if c === null}
+                  <div class="mini etched"></div>
+                {:else if c.up && c.v !== null}
+                  <div class={`mini ${heatClass(c.v)}`}>{c.v}</div>
+                {:else}
+                  <div class="mini down"></div>
+                {/if}
               {/each}
             </div>
-            <div class="dim total">total {v.totals[i]}</div>
           </div>
         {/if}
       {/each}
     </section>
 
     <section class="center">
-      <div class="pile">
-        <HeatCard clickable={myTurn && v.held === null && mode === 'idle'} target={myTurn && v.held === null && mode === 'idle'} onclick={clickDraw} />
-        <span class="dim">stack · {v.drawCount}</span>
-      </div>
-      <div class="pile">
-        {#if v.discardTop !== null}
-          <HeatCard
-            value={v.discardTop}
-            clickable={myTurn && ((v.held === null && mode === 'idle') || (v.held !== null && hasFaceDown))}
-            target={myTurn && v.held === null && mode === 'idle'}
-            onclick={clickDiscard}
-          />
-        {:else}
-          <HeatCard etched />
-        {/if}
-        <span class="dim">discard</span>
-      </div>
-      {#if v.held !== null}
-        <div class="pile held">
-          <HeatCard value={v.held} />
-          <span class="dim">drawn</span>
+      <div class="piles">
+        <div class="pile">
+          <HeatCard clickable={myTurn && v.held === null && mode === 'idle'} target={myTurn && v.held === null && mode === 'idle'} onclick={clickDraw} />
+          <span class="dim plabel">stack · {v.drawCount}</span>
         </div>
-      {/if}
+        <div class="pile">
+          {#if v.discardTop !== null}
+            <HeatCard
+              value={v.discardTop}
+              clickable={myTurn && ((v.held === null && mode === 'idle') || (v.held !== null && hasFaceDown))}
+              target={myTurn && v.held === null && mode === 'idle'}
+              onclick={clickDiscard}
+            />
+          {:else}
+            <HeatCard etched />
+          {/if}
+          <span class="dim plabel">discard</span>
+        </div>
+        {#if v.held !== null}
+          <div class="pile held">
+            <HeatCard value={v.held} />
+            <span class="dim plabel">drawn</span>
+          </div>
+        {/if}
+      </div>
+      <div class="banner" class:mine-turn={myTurn || (inFlip && myFlipsLeft > 0)}>
+        {banner}
+        {#if mode !== 'idle'}
+          <button class="slim" onclick={() => (mode = 'idle')}>cancel</button>
+        {/if}
+      </div>
     </section>
 
-    <section class="banner" class:mine={myTurn || (inFlip && myFlipsLeft > 0)}>
-      {banner}
-      {#if mode !== 'idle'}
-        <button onclick={() => (mode = 'idle')}>cancel</button>
-      {/if}
-    </section>
-
-    <section class="mine panel" class:active={myTurn}>
-      <div class="row opp-head">
+    <section class="mine" class:active={myTurn}>
+      <div class="mine-line">
         <span class="oname">{me >= 0 ? seatName(me) : ''} (you)</span>
-        <span class="dim heat">{me >= 0 ? sum(v.players[me]) : 0}°</span>
-        <span class="dim total-inline">total {me >= 0 ? v.totals[me] : 0}</span>
+        <span class="oheat">{me >= 0 && v.players[me] ? sum(v.players[me]) : 0}°</span>
+        <span class="ototal">Σ{me >= 0 ? v.totals[me] : 0}</span>
       </div>
       <div class="grid4x3 big">
         {#each myGrid as c, i (i)}
@@ -233,84 +243,162 @@
 {/if}
 
 <style>
-  main {
-    max-width: 900px;
+  /* ── The one-screen shell: status / info / action / interaction ───────── */
+  main.game {
+    height: 100dvh;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    overflow: hidden;
+    padding: 6px clamp(8px, 2vw, 20px) max(10px, env(safe-area-inset-bottom));
+    gap: 4px;
+    max-width: 1100px;
     width: 100%;
     margin: 0 auto;
-    padding: 14px 14px 4px;
+  }
+
+  /* status bar */
+  .bar {
     display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: 12px;
+    min-height: 34px;
   }
 
-  header {
-    flex-wrap: wrap;
+  .bar .trace-title {
+    font-size: 18px;
+    font-weight: 600;
   }
 
-  .leave {
-    margin-left: auto;
-    font-size: 13px;
-    padding: 5px 12px;
+  .spacer {
+    flex: 1;
+  }
+
+  .ver {
+    font-size: 11px;
+  }
+
+  button.slim {
+    font-size: 12px;
+    padding: 4px 10px;
   }
 
   .closing {
     color: var(--heat-mid);
     font-weight: 600;
+    font-size: 13px;
   }
 
+  /* ── opponents: compact status chips, one row, strip scrolls not page ── */
   .opponents {
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
+    gap: 8px;
+    justify-content: safe center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 2px 4px;
+    scrollbar-width: thin;
   }
 
   .opp {
-    padding: 10px;
+    flex: 0 0 auto;
+    background: rgb(17 28 23 / 72%);
+    border: 1px solid var(--line);
     border-radius: 10px;
+    padding: 6px 8px;
     transition: border-color 0.2s, box-shadow 0.2s;
   }
 
-  .opp.active,
-  .mine.active {
+  .opp.active {
     border-color: var(--copper);
-    box-shadow: 0 0 18px rgb(200 132 58 / 22%);
+    box-shadow: 0 0 14px rgb(200 132 58 / 25%);
   }
 
-  .opp-head {
-    margin-bottom: 8px;
+  .opp-line {
+    display: flex;
     gap: 8px;
+    align-items: baseline;
+    margin-bottom: 4px;
+    font-size: 12px;
   }
 
   .oname {
     font-weight: 600;
   }
 
-  .heat {
-    margin-left: auto;
+  .opp-line .oname {
+    max-width: 9em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .oheat {
+    color: var(--copper-bright);
     font-variant-numeric: tabular-nums;
   }
 
-  .total,
-  .total-inline {
-    font-size: 12px;
-    margin-top: 6px;
+  .ototal {
+    color: var(--dim);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    margin-left: auto;
   }
 
+  .mini-grid {
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    grid-auto-flow: column;
+    grid-template-rows: repeat(3, auto);
+    gap: 3px;
+  }
+
+  .mini {
+    width: clamp(15px, 2.4vh, 24px);
+    height: clamp(19px, 3vh, 30px);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(9px, 1.6vh, 13px);
+    font-weight: 700;
+  }
+
+  .mini.down {
+    background: linear-gradient(160deg, #1c2c24, #131f19);
+    border: 1px solid rgb(35 69 52 / 60%);
+  }
+
+  .mini.etched {
+    border: 1px dashed rgb(127 160 140 / 30%);
+    background: transparent;
+  }
+
+  /* ── action zone: piles + banner together, centered ─────────────────── */
   .center {
     display: flex;
-    gap: 26px;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
+    gap: 6px;
+    min-height: 0;
+  }
+
+  .piles {
+    display: flex;
+    gap: clamp(14px, 4vw, 34px);
     align-items: flex-start;
-    min-height: calc(var(--card-h) + 26px);
   }
 
   .pile {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    font-size: 12px;
+    gap: 3px;
+  }
+
+  .plabel {
+    font-size: 11px;
+    white-space: nowrap;
   }
 
   .pile.held {
@@ -320,35 +408,55 @@
   .banner {
     text-align: center;
     color: var(--dim);
-    min-height: 26px;
+    font-size: clamp(13px, 1.9vh, 15px);
+    min-height: 22px;
     display: flex;
-    gap: 12px;
+    gap: 10px;
     align-items: center;
     justify-content: center;
+    padding: 0 8px;
   }
 
-  .banner.mine {
+  .banner.mine-turn {
     color: var(--copper-bright);
   }
 
-  .banner button {
-    font-size: 12px;
-    padding: 3px 10px;
+  /* ── interaction zone: my board, biggest thing on screen ───────────── */
+  .mine {
+    justify-self: center;
+    background: rgb(17 28 23 / 72%);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 8px 14px 12px;
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
 
-  .mine {
-    align-self: center;
-    padding: 14px;
+  .mine.active {
+    border-color: var(--copper);
+    box-shadow: 0 0 18px rgb(200 132 58 / 22%);
+  }
+
+  .mine-line {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+
+  .mine-line .ototal {
+    margin-left: 0;
   }
 
   .grid4x3.big {
-    gap: 10px;
+    gap: clamp(6px, 1vh, 10px);
   }
 
+  /* ── chat + overlay (unchanged behavior) ─────────────────────────────── */
   .chat {
     position: fixed;
     right: 12px;
-    bottom: 44px;
+    bottom: max(12px, env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
     gap: 6px;
