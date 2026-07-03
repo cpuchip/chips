@@ -1,0 +1,29 @@
+{
+  "name": "chips",
+  "version": "0.1.0",
+  "description": "chips — a suite of single-player and multiplayer browser games at chips.cpuchip.net. First game: Heatsink.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:server": "tsx watch server/index.ts",
+    "build": "vite build",
+    "serve": "tsx server/index.ts",
+    "smoke": "tsx shared/heatsink/smoke.ts",
+    "wstest": "tsx server/wstest.ts",
+    "compile": "tsc --noEmit",
+    "gen-assets": "tsx scripts/gen-assets/generate.ts"
+  },
+  "dependencies": {
+    "nanoid": "^5",
+    "svelte": "^5",
+    "ws": "^8"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5",
+    "@types/node": "^22",
+    "@types/ws": "^8",
+    "tsx": "^4",
+    "typescript": "^5",
+    "vite": "^8"
+  }
+}

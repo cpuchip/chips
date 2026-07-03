@@ -80,7 +80,9 @@ We should pick one, state it in our rules, and consider making it a room option.
 
 ## Strategy shape (matters for AI opponents + balancing)
 
-- Expected value of an unknown card ≈ **+3**; assume ~4–5 for planning conservatively.
+- Expected value of an unknown card: the full-deck mean is **+5.07** (760/150 — compute it,
+  don't trust the strategy sites, some of which claim ≈3). Mid-round the survivors skew a
+  little lower as low cards get taken, but ~5 is the honest planning prior.
 - Keep cards ≤4; dump 10–12s on sight.
 - Early game: blind draws are attractive (bad draw still buys information via forced flip).
 - Collect matching mid/high cards in one column rather than micro-optimizing single swaps.
