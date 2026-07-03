@@ -4,6 +4,7 @@
 import { nanoid } from 'nanoid'
 import type { ClientMsg, ServerMsg } from '../shared/netproto.ts'
 import { app, pushToast } from './state.svelte.ts'
+import { soundDiff } from './soundDiff.ts'
 
 function playerKey(): string {
   try {
@@ -58,6 +59,7 @@ export function connect(): void {
         }
         return
       case 'state':
+        soundDiff(app.view, msg.view, msg.seat)
         app.view = msg.view
         app.seat = msg.seat
         return

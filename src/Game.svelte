@@ -2,8 +2,9 @@
   import { app } from './state.svelte.ts'
   import { send } from './net.ts'
   import HeatCard from './HeatCard.svelte'
+  import Settings from './Settings.svelte'
   import { heatClass } from './heat.ts'
-  import type { PlayerView } from '../shared/heatsink/types.ts'
+  import type { CellView, PlayerView } from '../shared/heatsink/types.ts'
 
   const v = $derived(app.view)
   const me = $derived(app.seat)
@@ -93,6 +94,41 @@
     if (text) send({ t: 'chat', text })
     chatText = ''
   }
+
+  /** A cell's animation identity: re-keying it plays the flip/etch animation. */
+  function cellSig(c: CellView | null): string {
+    return c === null ? 'etched' : c.up ? `up${c.v}` : 'down'
+  }
+
+  // ── Round-end count-up: scores tick from 0, totals roll from their old value.
+  const reduceMotion =
+    typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  let dispRound = $state<number[]>([])
+  let dispTotal = $state<number[]>([])
+
+  $effect(() => {
+    if (v === null || (v.phase !== 'roundEnd' && v.phase !== 'gameOver') || v.roundScores === null) return
+    const rounds = v.roundScores
+    const totals = v.totals
+    if (reduceMotion) {
+      dispRound = [...rounds]
+      dispTotal = [...totals]
+      return
+    }
+    const t0 = performance.now()
+    const DUR = 900
+    let raf = 0
+    const tick = (now: number) => {
+      const k = Math.min(1, (now - t0) / DUR)
+      const ease = 1 - (1 - k) * (1 - k)
+      dispRound = rounds.map((r) => Math.round(r * ease))
+      dispTotal = totals.map((t, i) => Math.round(t - rounds[i] * (1 - ease)))
+      if (k < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  })
 </script>
 
 {#if v !== null}
@@ -105,6 +141,7 @@
       {/if}
       <span class="spacer"></span>
       <span class="dim ver">{app.version}</span>
+      <Settings />
       <button class="slim" onclick={() => send({ t: 'leaveTable' })}>Leave</button>
     </header>
 
@@ -119,13 +156,15 @@
             </div>
             <div class="mini-grid">
               {#each p.grid as c, j (j)}
-                {#if c === null}
-                  <div class="mini etched"></div>
-                {:else if c.up && c.v !== null}
-                  <div class={`mini ${heatClass(c.v)}`}>{c.v}</div>
-                {:else}
-                  <div class="mini down"></div>
-                {/if}
+                {#key cellSig(c)}
+                  {#if c === null}
+                    <div class="mini etched anim-mini"></div>
+                  {:else if c.up && c.v !== null}
+                    <div class={`mini ${heatClass(c.v)} anim-mini`}>{c.v}</div>
+                  {:else}
+                    <div class="mini down"></div>
+                  {/if}
+                {/key}
               {/each}
             </div>
           </div>
@@ -140,16 +179,20 @@
           <span class="dim plabel">stack · {v.drawCount}</span>
         </div>
         <div class="pile">
-          {#if v.discardTop !== null}
-            <HeatCard
-              value={v.discardTop}
-              clickable={myTurn && ((v.held === null && mode === 'idle') || (v.held !== null && hasFaceDown))}
-              target={myTurn && v.held === null && mode === 'idle'}
-              onclick={clickDiscard}
-            />
-          {:else}
-            <HeatCard etched />
-          {/if}
+          {#key `${v.discardTop}:${v.discardCount}`}
+            <div class="anim-pop">
+              {#if v.discardTop !== null}
+                <HeatCard
+                  value={v.discardTop}
+                  clickable={myTurn && ((v.held === null && mode === 'idle') || (v.held !== null && hasFaceDown))}
+                  target={myTurn && v.held === null && mode === 'idle'}
+                  onclick={clickDiscard}
+                />
+              {:else}
+                <HeatCard etched />
+              {/if}
+            </div>
+          {/key}
           <span class="dim plabel">discard</span>
         </div>
         {#if v.held !== null}
@@ -173,17 +216,23 @@
         <span class="oheat">{me >= 0 && v.players[me] ? sum(v.players[me]) : 0}°</span>
         <span class="ototal">Σ{me >= 0 ? v.totals[me] : 0}</span>
       </div>
-      <div class="grid4x3 big">
-        {#each myGrid as c, i (i)}
-          <HeatCard
-            value={c === null ? null : c.up ? c.v : null}
-            etched={c === null}
-            clickable={cellTarget(i)}
-            target={cellTarget(i)}
-            onclick={() => clickMyCell(i)}
-          />
-        {/each}
-      </div>
+      {#key v.round}
+        <div class="grid4x3 big anim-deal">
+          {#each myGrid as c, i (i)}
+            {#key cellSig(c)}
+              <div class="cardwrap" class:anim-flip={c !== null && c.up} class:anim-etch={c === null}>
+                <HeatCard
+                  value={c === null ? null : c.up ? c.v : null}
+                  etched={c === null}
+                  clickable={cellTarget(i)}
+                  target={cellTarget(i)}
+                  onclick={() => clickMyCell(i)}
+                />
+              </div>
+            {/key}
+          {/each}
+        </div>
+      {/key}
     </section>
 
     <div class="chat" class:open={chatOpen}>
@@ -207,7 +256,7 @@
 
     {#if v.phase === 'roundEnd' || v.phase === 'gameOver'}
       <div class="overlay">
-        <div class="panel scores">
+        <div class="panel scores" class:shake={v.closerDoubled}>
           <h2>{v.phase === 'gameOver' ? 'game over' : `round ${v.round}`}</h2>
           <table>
             <tbody>
@@ -216,11 +265,11 @@
                   <td>{seatName(i)}{i === me ? ' (you)' : ''}</td>
                   <td class="num">
                     {#if v.roundScores}
-                      +{v.roundScores[i]}
+                      +{dispRound[i] ?? v.roundScores[i]}
                       {#if v.closer === i && v.closerDoubled}<span class="doubled">×2 🔥</span>{/if}
                     {/if}
                   </td>
-                  <td class="num total-col">{v.totals[i]}</td>
+                  <td class="num total-col">{dispTotal[i] ?? v.totals[i]}</td>
                 </tr>
               {/each}
             </tbody>
@@ -534,5 +583,114 @@
 
   .win-line {
     margin: 0;
+  }
+
+  /* ── juice ─────────────────────────────────────────────────────────────── */
+  .cardwrap {
+    display: block;
+  }
+
+  .anim-deal {
+    animation: deal-in 0.35s ease backwards;
+  }
+
+  @keyframes deal-in {
+    from {
+      opacity: 0;
+      transform: translateY(18px) scale(0.96);
+    }
+  }
+
+  .anim-flip {
+    animation: flip-in 0.3s ease backwards;
+    perspective: 600px;
+  }
+
+  @keyframes flip-in {
+    from {
+      transform: rotateY(88deg) scale(0.94);
+      opacity: 0.4;
+    }
+    60% {
+      transform: rotateY(-12deg) scale(1.03);
+    }
+  }
+
+  .anim-etch {
+    animation: etch-flash 0.55s ease backwards;
+    border-radius: var(--radius);
+  }
+
+  @keyframes etch-flash {
+    from {
+      box-shadow: 0 0 0 3px var(--heat-sink), 0 0 34px 8px rgb(34 211 238 / 65%);
+      opacity: 1;
+    }
+    to {
+      box-shadow: 0 0 0 0 transparent;
+    }
+  }
+
+  .anim-mini {
+    animation: mini-pop 0.22s ease backwards;
+  }
+
+  @keyframes mini-pop {
+    from {
+      transform: scale(0.6);
+      opacity: 0.2;
+    }
+  }
+
+  .anim-pop {
+    animation: pop-in 0.2s ease backwards;
+  }
+
+  @keyframes pop-in {
+    from {
+      transform: scale(0.85) translateY(-6px);
+      opacity: 0.4;
+    }
+  }
+
+  .mine.active {
+    animation: breathe 2.4s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    50% {
+      box-shadow: 0 0 26px rgb(200 132 58 / 38%);
+    }
+  }
+
+  .scores.shake {
+    animation: shake 0.45s ease;
+  }
+
+  @keyframes shake {
+    20% {
+      transform: translateX(-7px) rotate(-0.6deg);
+    }
+    40% {
+      transform: translateX(6px) rotate(0.5deg);
+    }
+    60% {
+      transform: translateX(-4px);
+    }
+    80% {
+      transform: translateX(3px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .anim-deal,
+    .anim-flip,
+    .anim-etch,
+    .anim-mini,
+    .anim-pop,
+    .scores.shake,
+    .mine.active {
+      animation: none;
+    }
   }
 </style>

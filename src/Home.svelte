@@ -1,6 +1,7 @@
 <script lang="ts">
   import { app, saveName } from './state.svelte.ts'
   import { send } from './net.ts'
+  import Settings from './Settings.svelte'
 
   let joinCode = $state('')
   let tableName = $state('')
@@ -30,6 +31,8 @@
       <h1 class="trace-title">chips</h1>
       <p class="dim">games by cpuchip — pull up a chair</p>
     </div>
+    <span class="spacer"></span>
+    <Settings />
   </header>
 
   <section class="panel callsign">
@@ -119,6 +122,10 @@
     height: 84px;
     object-fit: contain;
     filter: drop-shadow(0 4px 12px rgb(0 0 0 / 50%));
+  }
+
+  .spacer {
+    flex: 1;
   }
 
   .callsign {

@@ -7,6 +7,17 @@ The record of the drive. Newest state at the top of each section.
 - **chips.cpuchip.net** — Dokploy NOCIX compose `chips/games`, auto-deploy on push to main.
   `/version` = deploy oracle (must equal the pushed short-sha).
 
+## v1.1 — the one-screen UX redesign, SHIPPED 2026-07-02
+
+Research-driven relayout (`docs/ux-notes.md`): 100dvh zoned shell (status bar /
+opponent chip strip / piles+banner action zone / my board in the thumb arc),
+height-aware card sizing, flat mini-grids for opponents, page never scrolls.
+Verified 0 overflow at 360×640 → 1920×1080; phone-playable (all targets ≥44px).
+Michael's playtest feedback drove it ("keep everything on one screen… enable
+play on the phones"). NOT yet done from the same research: the juice layer
+(card flip/deal animations, etch spark, score count-up, SFX) — Balatro's
+lesson says that's the next-biggest feel win.
+
 ## Heatsink v1 — SHIPPED 2026-07-02
 
 Council-ratified calls (Michael, 2026-07-02): faithful golf-family core ·

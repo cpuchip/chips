@@ -4,8 +4,16 @@
   import Lobby from './Lobby.svelte'
   import Game from './Game.svelte'
   import Toasts from './Toasts.svelte'
+  import { initSound, setMusicScreen } from './sound.svelte.ts'
 
   const screen = $derived(app.table === null ? 'home' : app.table.status === 'lobby' ? 'lobby' : 'game')
+
+  initSound()
+
+  // The menu bed plays at home and in the table lobby — never over the game.
+  $effect(() => {
+    setMusicScreen(screen !== 'game')
+  })
 </script>
 
 <Toasts />
