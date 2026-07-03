@@ -1,10 +1,19 @@
-"""chips SFX — round 2: the three game-moment sounds the 2026-07-02 starter set
-didn't cover (doubling burn, round chime, win fanfare). Import-the-module +
-external-set pattern; seeds continue the chips block (708–710)."""
+"""chips SFX set — game-moment sounds beyond the harness starter set (doubling
+burn, round chime, win fanfare; seeds continue the chips block 708+). The
+game repo owns its prompt set; the plumbing stays in the asset-harness
+(import-the-module pattern). Run with the ComfyUI venv python against the
+GPU-1 audio instance (:8189); post with the harness optimize_audio.py
+(--lufs -16) and copy the .ogg into public/assets/sfx/. Re-roll a clip by
+bumping its seed. Full provenance: docs/assets.md."""
 
+import sys
 from pathlib import Path
 
-from generate_sfx import generate
+# workspace layout: <workspace>/projects/chips/scripts/ → <workspace>/external_context/...
+HARNESS_SFX = Path(__file__).resolve().parents[3] / "external_context/asset-harness/audio/prototypes/sfx"
+sys.path.insert(0, str(HARNESS_SFX))
+
+from generate_sfx import generate  # noqa: E402
 
 SERVER = "http://127.0.0.1:8189"
 OUT = Path(__file__).parent / "outputs_chips2"
