@@ -24,9 +24,12 @@
 </script>
 
 <main>
-  <header>
-    <h1 class="trace-title">chips</h1>
-    <p class="dim">games by cpuchip — pull up a chair</p>
+  <header class="row">
+    <img class="mark" src="/assets/logo.png" alt="chips logo" />
+    <div>
+      <h1 class="trace-title">chips</h1>
+      <p class="dim">games by cpuchip — pull up a chair</p>
+    </div>
   </header>
 
   <section class="panel callsign">
@@ -109,6 +112,13 @@
 
   header p {
     margin: 4px 0 0;
+  }
+
+  .mark {
+    width: 84px;
+    height: 84px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 12px rgb(0 0 0 / 50%));
   }
 
   .callsign {

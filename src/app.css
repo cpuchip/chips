@@ -37,10 +37,11 @@ body {
 }
 
 body {
+  /* generated PCB texture under a heavy dark overlay — presence, not noise */
   background:
     radial-gradient(1200px 800px at 70% -10%, var(--bg-glow), transparent 60%),
-    repeating-linear-gradient(0deg, transparent 0 23px, rgb(35 69 52 / 14%) 23px 24px),
-    repeating-linear-gradient(90deg, transparent 0 23px, rgb(35 69 52 / 14%) 23px 24px),
+    linear-gradient(rgb(10 16 14 / 82%), rgb(10 16 14 / 90%)),
+    url('/assets/table-bg.webp') center / cover no-repeat,
     var(--bg);
   color: var(--text);
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -183,15 +184,14 @@ h3 {
 
 .card.back {
   background:
-    radial-gradient(circle at 50% 42%, #1d2f26 0 26%, transparent 27%),
+    url('/assets/card-back.png') center / cover no-repeat,
     linear-gradient(160deg, #182720, #0f1a15);
   color: var(--copper);
+  filter: brightness(0.92);
 }
 
 .card.back .die {
-  font-size: calc(var(--card-w) * 0.3);
-  opacity: 0.85;
-  letter-spacing: 0.05em;
+  display: none; /* the generated card back carries the art */
 }
 
 .card.pad {
