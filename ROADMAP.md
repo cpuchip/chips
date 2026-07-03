@@ -18,6 +18,18 @@ play on the phones"). NOT yet done from the same research: the juice layer
 (card flip/deal animations, etch spark, score count-up, SFX) — Balatro's
 lesson says that's the next-biggest feel win.
 
+## v1.2 — the juice layer, SHIPPED 2026-07-02
+
+Sound + motion (Michael: "let the juice flow!… make sure theres a settings with an
+option to turn off sounds"): 10 locally-generated audio assets (provenance:
+`docs/assets.md`), WebAudio SFX diff-driven from state transitions
+(`src/soundDiff.ts`), menu lofi bed at home/lobby only, ⚙ settings with persisted
+sound-effects/music toggles. Animations: deal slide, 3D flip-in, cyan etch flash,
+discard pop, mini pops, active-board breathing, round-end count-up, doubling shake;
+`prefers-reduced-motion` disables all. Verified through the real UI to a game-over
+overlay (doubling toast + ×2 + count-up), zero console errors. Michael's ears are
+the final SFX-quality gate — re-roll any clip by seed via `scripts/gen-sfx.py`.
+
 ## Heatsink v1 — SHIPPED 2026-07-02
 
 Council-ratified calls (Michael, 2026-07-02): faithful golf-family core ·
